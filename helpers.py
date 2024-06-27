@@ -55,20 +55,13 @@ def plot_amount_paid_over_time(amortization_table):
         + p9.theme(legend_position='top', legend_direction='horizontal', legend_title=p9.element_blank())
     )
 
+def plot_payment_composition_over_time(amortization_table):
+    payments_df = amortization_table[['Payment Number', 'Principal Payment', 'Interest Payment']]
+    long_df = payments_df.melt(id_vars=['Payment Number'], value_vars=['Principal Payment', 'Interest Payment'], var_name='Payment Type', value_name='Amount')
 
-##### The above function works, but the colors need adjusted.
-##### In progress
-
-
-def plot_payment_chart(amortization_df):
-
-    plt.figure(figsize=(12, 8))
-    
-    plt.bar(amortization_df['Payment Number'], amortization_df['Interest Payment'], color='r', label='Interest Payment')
-    plt.bar(amortization_df['Payment Number'], amortization_df['Principal Payment'], bottom=amortization_df['Interest Payment'], color='b', label='Principal Payment')
-    
-    plt.xlabel('Payment Number')
-    plt.ylabel('Monthly Amount')
-    plt.title('Amortization Schedule')
-    plt.legend()
-    plt.show()
+    return (
+        p9.ggplot(long_df, p9.aes(x="Payment Number", y="Amount", fill="Payment Type"))
+        + p9.geom_col()
+        + p9.theme_linedraw()
+        + p9.theme(legend_position='top', legend_direction='horizontal', legend_title=p9.element_blank())
+    )

@@ -2,8 +2,12 @@
 
 from shiny import reactive
 from shiny.express import render, input, ui
+from io import StringIO
 import faicons as fa
 import helpers
+
+green = '#198754'
+gold = '#ffc107'
 
 # Begin UI --------------------------------------------------------------------
 ui.page_opts(fillable=True, title='Interest Calculator App')
@@ -45,23 +49,40 @@ with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
                 return patch["value"]
 
         ui.input_action_button("update", "Update Payments")
-        ui.input_action_button("download", "Download Schedule")
+
+        # Update payments schedule -----------------------------------------------------
+        @reactive.effect
+        @reactive.event(input.update)
+        def _():
+            updated_schedule = helpers.make_amortization_table(
+                input.amount(), 
+                input.rate(), 
+                input.term(),
+                payments.data_view()['Amount'],
+                payments.data_view()['Notes']
+            )
+            amortization_df.set(updated_schedule)
+            return None
+
+        @render.download(label="Download Schedule", filename="payments.csv")
+        def download():
+            yield payments.data().to_csv(index=False)
 
     with ui.layout_columns(col_widths=(4, 4, 4, 12)):   
 
-        # Reactive Calcs ----------------------------------------------------------------
+        # Value boxes ----------------------------------------------------------------
         @reactive.calc
         def total_paid():
             return helpers.calculate_total_paid(amortization_df())
 
-        with ui.value_box(showcase=fa.icon_svg("sack-dollar"), theme="bg-gradient-indigo-purple"):
+        with ui.value_box(showcase=fa.icon_svg("sack-dollar"), theme=ui.value_box_theme(fg='#FFFFFF', bg=gold)):
             "Total Paid"
 
             @render.text
             def total_paid_amount():
                 return f'{total_paid():,}'
 
-        with ui.value_box(showcase=fa.icon_svg("building-columns"), theme="bg-gradient-indigo-purple"):
+        with ui.value_box(showcase=fa.icon_svg("building-columns"), theme=ui.value_box_theme(fg='#FFFFFF', bg=green)):
             "Interest Paid"
 
             @render.text
@@ -69,7 +90,7 @@ with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
                 interest = helpers.calculate_interest_amount(input.amount(), total_paid())
                 return f'{interest:,}'
 
-        with ui.value_box(showcase=fa.icon_svg("percent"), theme="bg-gradient-indigo-purple"):
+        with ui.value_box(showcase=fa.icon_svg("percent"), theme=ui.value_box_theme(fg='#FFFFFF', bg=green)):
             "Percent Interest"
 
             @render.text
@@ -83,24 +104,11 @@ with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
             with ui.nav_panel("Cumulative Amount"):
                 @render.plot
                 def cumulative_plot():
-                    return helpers.plot_amount_paid_over_time(amortization_df())
+                    return helpers.plot_amount_paid_over_time(amortization_df(), green, gold)
 
             with ui.nav_panel("Payment Composition"):
                 @render.plot
                 def payments_composition_plot():
-                    return helpers.plot_payment_composition_over_time(amortization_df())
+                    return helpers.plot_payment_composition_over_time(amortization_df(), green, gold)
 
 
-# Update payments schedule -----------------------------------------------------
-@reactive.effect
-@reactive.event(input.update)
-def _():
-    updated_schedule = helpers.make_amortization_table(
-        input.amount(), 
-        input.rate(), 
-        input.term(),
-        payments.data_view()['Amount'],
-        payments.data_view()['Notes']
-    )
-    amortization_df.set(updated_schedule)
-    return None

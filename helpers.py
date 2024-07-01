@@ -68,7 +68,7 @@ def calculate_percent_interest(amount_financed, total_paid):
     percent = (total_paid - amount_financed) / total_paid * 100
     return int(percent.round(0))
 
-def plot_amount_paid_over_time(amortization_table):
+def plot_amount_paid_over_time(amortization_table, green, gold):
     amortization_table['Cumulative Principal'] = amortization_table['Principal Payment'].cumsum()
     amortization_table['Cumulative Interest'] = amortization_table['Interest Payment'].cumsum()
 
@@ -78,17 +78,19 @@ def plot_amount_paid_over_time(amortization_table):
     return (
         p9.ggplot(long_df, p9.aes(x="Payment", y="Amount", fill="Payment Type"))
         + p9.geom_area()
+        + p9.scale_fill_manual(values=(green, gold))
         + p9.theme_linedraw()
         + p9.theme(legend_position='top', legend_direction='horizontal', legend_title=p9.element_blank())
     )
 
-def plot_payment_composition_over_time(amortization_table):
+def plot_payment_composition_over_time(amortization_table, green, gold):
     payments_df = amortization_table[['Payment', 'Principal Payment', 'Interest Payment']]
     long_df = payments_df.melt(id_vars=['Payment'], value_vars=['Principal Payment', 'Interest Payment'], var_name='Payment Type', value_name='Amount')
 
     return (
         p9.ggplot(long_df, p9.aes(x="Payment", y="Amount", fill="Payment Type"))
         + p9.geom_col()
+        + p9.scale_fill_manual(values=(green, gold))
         + p9.theme_linedraw()
         + p9.theme(legend_position='top', legend_direction='horizontal', legend_title=p9.element_blank())
     )

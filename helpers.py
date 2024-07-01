@@ -61,6 +61,9 @@ def make_payment_schedule(amortization_table):
 def calculate_total_paid(amortization_table):
     return amortization_table['Amount'].sum().round(2)
 
+def calculate_interest_amount(amount_financed, total_paid):
+    return (total_paid - amount_financed).round(2)
+
 def calculate_percent_interest(amount_financed, total_paid):
     percent = (total_paid - amount_financed) / total_paid * 100
     return int(percent.round(0))

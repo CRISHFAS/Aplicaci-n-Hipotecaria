@@ -18,7 +18,9 @@ with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
         ui.markdown("#### 1. Define Loan")
         ui.input_numeric("amount", "Amount Financed", 100000, min=1, step=1000) 
         ui.input_numeric("rate", "Interest Rate", 7.25, min=0.01, step=0.05) 
-        ui.input_numeric("term", "Term of Loan", 30, min=0.25, step=5) 
+        ui.input_numeric("term", "Term of Loan in Years", 30, min=0.25, step=5) 
+        ui.input_date("start", "Date of First Payment", format="yyyy-mm-dd")
+
 
 
     with ui.layout_columns(col_widths=(12, 10, 5, 5)):

@@ -12,7 +12,7 @@ gold = '#ffc107'
 # Begin UI --------------------------------------------------------------------
 ui.page_opts(fillable=True, title='Interest Calculator App')
 
-with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
+with ui.layout_columns(fillable=False, col_widths=(2, 4, 6)):
 
     with ui.layout_columns(col_widths=(8)):
         ui.markdown("#### 1. Define Loan")
@@ -33,7 +33,7 @@ with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
         @reactive.effect
         def _():
             amortization_df.set(
-                helpers.make_amortization_table(input.amount(), input.rate(), input.term())
+                helpers.make_amortization_table(input.amount(), input.rate(), input.term(), input.start())
             )
 
         @render.data_frame
@@ -60,6 +60,7 @@ with ui.layout_columns(fillable=False, col_widths=(2, 3, 7)):
                 input.amount(), 
                 input.rate(), 
                 input.term(),
+                input.start(),
                 payments.data_view()['Amount'],
                 payments.data_view()['Notes']
             )

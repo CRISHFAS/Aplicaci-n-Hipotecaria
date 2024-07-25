@@ -3,7 +3,29 @@ import pandas as pd
 import plotnine as p9
 
 
-def make_amortization_table(amount, rate, term, payments = None, notes = None):
+def make_dates(start_date, term):
+
+    # start_date = datetime.strptime(start, "%Y-%m-%d")
+
+    # Determine the first day of the following month
+    first_day_of_month = start_date.replace(day=1, month=start_date.month + 1)
+
+    # Create list of payment dates
+    n_months = term * 12
+    dates_list = []
+
+    for i in range(n_months):
+        new_month = (first_day_of_month.month + i) % 12
+        if new_month == 0:
+            new_month = 12
+        dates_list.append(first_day_of_month.replace(month = new_month))
+
+    # Convert dates to strings in the format "YYYY-MM-DD"
+    dates_list_str = [date.strftime("%Y-%m-%d") for date in dates_list]
+
+    return dates_list_str
+
+def make_amortization_table(amount, rate, term, start_date, payments = None, notes = None):
 
     # Calculate total number of payments
     n_payments = term * 12
@@ -47,16 +69,20 @@ def make_amortization_table(amount, rate, term, payments = None, notes = None):
             remaining_balance = max(0, remaining_balance - principal_payment)
             amortization_table.append([payment_number, payment, principal_payment, interest_payment, remaining_balance, notes[payment_number - 1]])
 
+    # Add dates column, and remove payment column
+
     # Create DataFrame for better visualization
     amortization_df = pd.DataFrame(
         amortization_table, 
         columns=['Payment', 'Amount', 'Principal Payment', 'Interest Payment', 'Remaining Balance', 'Notes']
     ).round(2)
     
+    amortization_df["Date"] = make_dates(start_date, term)
+
     return amortization_df
 
 def make_payment_schedule(amortization_table):
-    return amortization_table[['Payment', 'Amount', 'Notes']]
+    return amortization_table[['Date', 'Amount', 'Notes']]
 
 def calculate_total_paid(amortization_table):
     return amortization_table['Amount'].sum().round(2)
@@ -86,10 +112,11 @@ def plot_amount_paid_over_time(amortization_table, green, gold):
 def plot_payment_composition_over_time(amortization_table, green, gold):
     payments_df = amortization_table[['Payment', 'Principal Payment', 'Interest Payment']]
     long_df = payments_df.melt(id_vars=['Payment'], value_vars=['Principal Payment', 'Interest Payment'], var_name='Payment Type', value_name='Amount')
+    long_df = long_df[long_df['Amount'] != 0]
 
     return (
         p9.ggplot(long_df, p9.aes(x="Payment", y="Amount", fill="Payment Type"))
-        + p9.geom_col()
+        + p9.geom_col(position="fill")
         + p9.scale_fill_manual(values=(green, gold))
         + p9.theme_linedraw()
         + p9.theme(legend_position='top', legend_direction='horizontal', legend_title=p9.element_blank())

@@ -1,16 +1,11 @@
-# helpers.py
 import pandas as pd
 import plotnine as p9
 
-
 def make_dates(start_date, term):
-
-    # start_date = datetime.strptime(start, "%Y-%m-%d")
-
-    # Determine the first day of the following month
+    # Determine el primer día del siguiente mes
     first_day_of_month = start_date.replace(day=1, month=start_date.month + 1)
 
-    # Create list of payment dates
+    # Crear lista de fechas de pago
     n_months = term * 12
     dates_list = []
 
@@ -18,37 +13,36 @@ def make_dates(start_date, term):
         new_month = (first_day_of_month.month + i) % 12
         if new_month == 0:
             new_month = 12
-        dates_list.append(first_day_of_month.replace(month = new_month))
+        dates_list.append(first_day_of_month.replace(month=new_month))
 
-    # Convert dates to strings in the format "YYYY-MM-DD"
+    # Convertir fechas a cadenas en el formato "YYYY-MM-DD"
     dates_list_str = [date.strftime("%Y-%m-%d") for date in dates_list]
 
     return dates_list_str
 
-def make_amortization_table(amount, rate, term, start_date, payments = None, notes = None):
-
-    # Calculate total number of payments
+def make_amortization_table(amount, rate, term, start_date, payments=None, notes=None):
+    # Calcular el número total de pagos
     n_payments = term * 12
 
-    # Calculate monthly interest rate
+    # Calcular la tasa de interés mensual
     monthly_rate = rate / 12 / 100
 
-    # Assemble payments schedule
+    # Armar el calendario de pagos
     if payments is None:
         monthly_payment = amount * (monthly_rate * (1 + monthly_rate) ** n_payments) / ((1 + monthly_rate) ** n_payments - 1)
         payments = [monthly_payment] * n_payments
 
-    # Assemble notes field
+    # Armar el campo de notas
     if notes is None:
         notes = [''] * n_payments
     
-    # Initialize amortization table
+    # Inicializar la tabla de amortización
     amortization_table = []
     
-    # Initialize remaining balance
+    # Inicializar el saldo restante
     remaining_balance = amount
     
-    # Calculate each month's principal and interest
+    # Calcular el principal y los intereses de cada mes
     for payment_number in range(1, n_payments + 1):
         if remaining_balance == 0:
             amortization_table.append([payment_number, 0, 0, 0, 0, notes[payment_number - 1]])
@@ -69,23 +63,21 @@ def make_amortization_table(amount, rate, term, start_date, payments = None, not
             remaining_balance = max(0, remaining_balance - principal_payment)
             amortization_table.append([payment_number, payment, principal_payment, interest_payment, remaining_balance, notes[payment_number - 1]])
 
-    # Add dates column, and remove payment column
-
-    # Create DataFrame for better visualization
+    # Agregar columna de fechas y eliminar columna de pagos
     amortization_df = pd.DataFrame(
         amortization_table, 
-        columns=['Payment', 'Amount', 'Principal Payment', 'Interest Payment', 'Remaining Balance', 'Notes']
+        columns=['Pago', 'Monto', 'Pago Principal', 'Pago de Interés', 'Saldo Restante', 'Notas']
     ).round(2)
     
-    amortization_df["Date"] = make_dates(start_date, term)
+    amortization_df["Fecha"] = make_dates(start_date, term)
 
     return amortization_df
 
 def make_payment_schedule(amortization_table):
-    return amortization_table[['Date', 'Amount', 'Notes']]
+    return amortization_table[['Fecha', 'Monto', 'Notas']]
 
 def calculate_total_paid(amortization_table):
-    return amortization_table['Amount'].sum().round(2)
+    return amortization_table['Monto'].sum().round(2)
 
 def calculate_interest_amount(amount_financed, total_paid):
     return (total_paid - amount_financed).round(2)
@@ -95,14 +87,14 @@ def calculate_percent_interest(amount_financed, total_paid):
     return int(percent.round(0))
 
 def plot_amount_paid_over_time(amortization_table, green, gold):
-    amortization_table['Cumulative Principal'] = amortization_table['Principal Payment'].cumsum()
-    amortization_table['Cumulative Interest'] = amortization_table['Interest Payment'].cumsum()
+    amortization_table['Principal Acumulado'] = amortization_table['Pago Principal'].cumsum()
+    amortization_table['Interés Acumulado'] = amortization_table['Pago de Interés'].cumsum()
 
-    cumulative_df = amortization_table[['Payment', 'Cumulative Principal', 'Cumulative Interest']]
-    long_df = cumulative_df.melt(id_vars=['Payment'], value_vars=['Cumulative Principal', 'Cumulative Interest'], var_name='Payment Type', value_name='Amount')
+    cumulative_df = amortization_table[['Pago', 'Principal Acumulado', 'Interés Acumulado']]
+    long_df = cumulative_df.melt(id_vars=['Pago'], value_vars=['Principal Acumulado', 'Interés Acumulado'], var_name='Tipo de Pago', value_name='Monto')
     
     return (
-        p9.ggplot(long_df, p9.aes(x="Payment", y="Amount", fill="Payment Type"))
+        p9.ggplot(long_df, p9.aes(x="Pago", y="Monto", fill="Tipo de Pago"))
         + p9.geom_area()
         + p9.scale_fill_manual(values=(green, gold))
         + p9.theme_linedraw()
@@ -110,12 +102,12 @@ def plot_amount_paid_over_time(amortization_table, green, gold):
     )
 
 def plot_payment_composition_over_time(amortization_table, green, gold):
-    payments_df = amortization_table[['Payment', 'Principal Payment', 'Interest Payment']]
-    long_df = payments_df.melt(id_vars=['Payment'], value_vars=['Principal Payment', 'Interest Payment'], var_name='Payment Type', value_name='Amount')
-    long_df = long_df[long_df['Amount'] != 0]
+    payments_df = amortization_table[['Pago', 'Pago Principal', 'Pago de Interés']]
+    long_df = payments_df.melt(id_vars=['Pago'], value_vars=['Pago Principal', 'Pago de Interés'], var_name='Tipo de Pago', value_name='Monto')
+    long_df = long_df[long_df['Monto'] != 0]
 
     return (
-        p9.ggplot(long_df, p9.aes(x="Payment", y="Amount", fill="Payment Type"))
+        p9.ggplot(long_df, p9.aes(x="Pago", y="Monto", fill="Tipo de Pago"))
         + p9.geom_col(position="fill")
         + p9.scale_fill_manual(values=(green, gold))
         + p9.theme_linedraw()
@@ -127,7 +119,7 @@ def cell_to_float(s):
         result = float(s)
     except ValueError:
         raise SafeException(
-                "Amount values should be numbers."
+                "Los valores deben ser números."
             )
     else:
         return result
